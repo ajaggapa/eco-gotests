@@ -148,8 +148,16 @@ var _ = Describe("Multi-NetworkPolicy : Bond CNI", Ordered, Label("bondcnioversr
 		By("Delete test namespace")
 		err = tNs1.Delete()
 		Expect(err).ToNot(HaveOccurred(), "Failed to delete test namespace")
+		Eventually(func() error {
+			_, err = namespace.Pull(APIClient, tsparams.MultiNetPolNs1)
+			return err
+		}, 2*time.Minute, 5*time.Second).Should(HaveOccurred(), "Failed to check if test namespace is removed")
 		err = tNs2.Delete()
 		Expect(err).ToNot(HaveOccurred(), "Failed to delete test namespace")
+		Eventually(func() error {
+			_, err = namespace.Pull(APIClient, tsparams.MultiNetPolNs2)
+			return err
+		}, 2*time.Minute, 5*time.Second).Should(HaveOccurred(), "Failed to check if test namespace is removed")
 	})
 
 	It("Egress - block all", reportxml.ID("77169"), func() {

@@ -57,7 +57,7 @@ var _ = Describe("Multi-NetworkPolicy : IPVLAN CNI", Ordered, Label("ipvlancni")
 		Expect(err).ToNot(HaveOccurred(), "Failed to create test namespace")
 		tNs2, err = namespace.NewBuilder(APIClient, tsparams.MultiNetPolNs2).WithMultipleLabels(params.PrivilegedNSLabels).
 			WithLabel("ns", "ns2").Create()
-		Expect(err).ToNot(HaveOccurred(), "Failed to create test namespace")
+		Expect(err).ToNot(HaveOccurred(), "Failed to create test namespace ")
 
 		By("Deploy Test Resources: Two NADs for IPVLAN CNI")
 		testNAD1 = defineAndCreateIpvlanNAD(tsparams.MultiNetPolNs1, sriovInterfacesUnderTest[0])
@@ -111,8 +111,16 @@ var _ = Describe("Multi-NetworkPolicy : IPVLAN CNI", Ordered, Label("ipvlancni")
 		By("Delete test namespace")
 		err = tNs1.Delete()
 		Expect(err).ToNot(HaveOccurred(), "Failed to delete test namespace")
+		Eventually(func() error {
+			_, err = namespace.Pull(APIClient, tsparams.MultiNetPolNs1)
+			return err
+		}, 2*time.Minute, 5*time.Second).Should(HaveOccurred(), "Failed to check if test namespace is removed")
 		err = tNs2.Delete()
 		Expect(err).ToNot(HaveOccurred(), "Failed to delete test namespace")
+		Eventually(func() error {
+			_, err = namespace.Pull(APIClient, tsparams.MultiNetPolNs2)
+			return err
+		}, 2*time.Minute, 5*time.Second).Should(HaveOccurred(), "Failed to check if test namespace is removed ")
 	})
 
 	It("Egress - block all", reportxml.ID("77467"), func() {
