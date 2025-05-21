@@ -162,9 +162,22 @@ var _ = Describe("BGP", Ordered, Label(tsparams.LabelBGPTestCases), ContinueOnFa
 			}
 		})
 
-		It("Verify frrk8s debug logs", reportxml.ID("49812"), func() {
+		FIt("Verify frrk8s debug logs", reportxml.ID("49812"), func() {
+			var err error
 			By("Creating a new instance of MetalLB with Log level set to debug")
-			err := metallbenv.CreateNewMetalLbDaemonSetAndWaitUntilItsRunning(tsparams.DefaultTimeout, workerLabelMap, "debug")
+			err = metallbenv.CreateNewMetalLbDaemonSetAndWaitUntilItsRunning(tsparams.DefaultTimeout, workerLabelMap, "debug")
+			Expect(err).ToNot(HaveOccurred(), "Failed to create a new instance of MetalLB with Log level set to debug")
+
+			By("Creating a new instance of MetalLB with Log level set to debug")
+			err = metallbenv.CreateNewMetalLbDaemonSetAndWaitUntilItsRunning(tsparams.DefaultTimeout, workerLabelMap, "debug")
+			Expect(err).ToNot(HaveOccurred(), "Failed to create a new instance of MetalLB with Log level set to debug")
+
+			By("Creating a new instance of MetalLB with Log level set to debug")
+			err = metallbenv.CreateNewMetalLbDaemonSetAndWaitUntilItsRunning(tsparams.DefaultTimeout, workerLabelMap, "debug")
+			Expect(err).ToNot(HaveOccurred(), "Failed to create a new instance of MetalLB with Log level set to debug")
+
+			By("Creating a new instance of MetalLB with Log level set to debug")
+			err = metallbenv.CreateNewMetalLbDaemonSetAndWaitUntilItsRunning(tsparams.DefaultTimeout, workerLabelMap, "debug")
 			Expect(err).ToNot(HaveOccurred(), "Failed to create a new instance of MetalLB with Log level set to debug")
 
 			By("Fetch speaker pods from metallb-system namespace")
