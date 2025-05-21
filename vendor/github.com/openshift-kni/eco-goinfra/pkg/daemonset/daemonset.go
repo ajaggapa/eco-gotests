@@ -439,8 +439,7 @@ func (builder *Builder) IsReady(timeout time.Duration) bool {
 		context.TODO(), retryInterval, timeout, true, func(ctx context.Context) (bool, error) {
 			if !builder.Exists() {
 				glog.V(100).Infof("Error inside the poll. Daemonset does not exist")
-				fmt.Println("Error inside the poll. Daemonset does not exist")
-				return false, fmt.Errorf("daemonset %s is not present on cluster", builder.Object.Name)
+				return false, nil
 			}
 
 			var err error
