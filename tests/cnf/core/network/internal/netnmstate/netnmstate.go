@@ -121,15 +121,7 @@ func ConfigureVFsAndWaitUntilItsConfigured(
 	glog.V(90).Infof("Creating an NMState policy with VFs (%d) on interface %s"+
 		" and wait for it to be successfully configured.", numberOfVFs, sriovInterfaceName)
 
-	nmstatePolicy := nmstate.NewPolicyBuilder(
-		APIClient, policyName, nodeLabel).WithInterfaceAndVFs(sriovInterfaceName, numberOfVFs)
-
-	err := CreatePolicyAndWaitUntilItsAvailable(timeout, nmstatePolicy)
-	if err != nil {
-		return err
-	}
-
-	// NodeNetworkStates exist for each node and share the same name.
+	fmt.Println("Printing resource revision before")
 	nodeList, err := nodes.List(APIClient, metav1.ListOptions{LabelSelector: labels.Set(nodeLabel).String()})
 
 	if err != nil {
@@ -137,11 +129,49 @@ func ConfigureVFsAndWaitUntilItsConfigured(
 	}
 
 	for _, node := range nodeList {
+		err = getNNSRevision(node.Definition.Name)
+		if err != nil {
+			return err
+		}
+	}
+
+	nmstatePolicy := nmstate.NewPolicyBuilder(
+		APIClient, policyName, nodeLabel).WithInterfaceAndVFs(sriovInterfaceName, numberOfVFs)
+
+	err = CreatePolicyAndWaitUntilItsAvailable(timeout, nmstatePolicy)
+	if err != nil {
+		return err
+	}
+
+	// NodeNetworkStates exist for each node and share the same name.
+	//nodeList, err := nodes.List(APIClient, metav1.ListOptions{LabelSelector: labels.Set(nodeLabel).String()})
+	//
+	//if err != nil {
+	//	return err
+	//}
+
+	for _, node := range nodeList {
 		err = AreVFsCreated(node.Definition.Name, sriovInterfaceName, int(numberOfVFs))
 		if err != nil {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func getNNSRevision(nmstateName string) error {
+	glog.V(90).Infof("gettingggggg NNS revision")
+
+	nodeNetworkState, err := nmstate.PullNodeNetworkState(APIClient, nmstateName)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("============")
+	fmt.Println(nodeNetworkState.Object.Name)
+	fmt.Println(nodeNetworkState.Object.Status.CurrentState.String())
+	fmt.Println("============")
 
 	return nil
 }
@@ -157,6 +187,11 @@ func AreVFsCreated(nmstateName, sriovInterfaceName string, numberVFs int) error 
 		return err
 	}
 
+	fmt.Println("++++++++++++")
+	fmt.Println("Printing resource revision after")
+	fmt.Println(nodeNetworkState.Object.Name)
+	fmt.Println(nodeNetworkState.Object.Status.CurrentState.String())
+	fmt.Println("++++++++++++")
 	numVFs, err := nodeNetworkState.GetTotalVFs(sriovInterfaceName)
 	if err != nil {
 		return err

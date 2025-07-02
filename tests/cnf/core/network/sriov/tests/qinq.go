@@ -603,7 +603,7 @@ var _ = Describe("QinQ", Ordered, Label(tsparams.LabelQinQTestCases), ContinueOn
 			setVFPromiscMode(workerNodeList[0].Definition.Name, srIovInterfacesUnderTest[0], sriovDeviceID, "on")
 		})
 
-		It("Verify an 802.1ad QinQ tunneling between two containers with the VFs configured by NMState",
+		FIt("Verify an 802.1ad QinQ tunneling between two containers with the VFs configured by NMState",
 			reportxml.ID("71681"), func() {
 				By("Define and create a container in promiscuous mode")
 				tcpDumpContainer := createPromiscuousClient(workerNodeList[0].Definition.Name,

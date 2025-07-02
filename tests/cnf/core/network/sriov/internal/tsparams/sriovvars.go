@@ -37,7 +37,8 @@ var (
 	// ReporterNamespacesToDump tells to the reporter what namespaces to dump.
 	ReporterNamespacesToDump = map[string]string{
 		NetConfig.SriovOperatorNamespace: NetConfig.SriovOperatorNamespace,
-		TestNamespaceName:                "other",
+		TestNamespaceName:                "test-namespace",
+		"openshift-nmstate":              "nmstate",
 	}
 	// ClientIPv4IPAddress represents the full test client IPv4 address.
 	ClientIPv4IPAddress = "192.168.0.1/24"
