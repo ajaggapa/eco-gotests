@@ -797,6 +797,7 @@ github.com/openshift-kni/eco-goinfra/pkg/schemes/assisted/hive/scheme
 github.com/openshift-kni/eco-goinfra/pkg/schemes/assisted/models
 github.com/openshift-kni/eco-goinfra/pkg/schemes/assisted/pkg/validations
 github.com/openshift-kni/eco-goinfra/pkg/schemes/fec/fectypes
+github.com/openshift-kni/eco-goinfra/pkg/schemes/fec/vrbtypes
 github.com/openshift-kni/eco-goinfra/pkg/schemes/hive/api/v1
 github.com/openshift-kni/eco-goinfra/pkg/schemes/hive/api/v1/agent
 github.com/openshift-kni/eco-goinfra/pkg/schemes/hive/api/v1/aws
@@ -870,6 +871,7 @@ github.com/openshift-kni/eco-goinfra/pkg/servicemesh
 github.com/openshift-kni/eco-goinfra/pkg/siteconfig
 github.com/openshift-kni/eco-goinfra/pkg/sriov
 github.com/openshift-kni/eco-goinfra/pkg/sriov-fec
+github.com/openshift-kni/eco-goinfra/pkg/sriov-vrb
 github.com/openshift-kni/eco-goinfra/pkg/statefulset
 github.com/openshift-kni/eco-goinfra/pkg/storage
 github.com/openshift-kni/eco-goinfra/pkg/velero
