@@ -356,8 +356,8 @@ var _ = Describe("QinQ", Ordered, Label(tsparams.LabelQinQTestCases), ContinueOn
 				srIovPolicyNetDevice,
 				NetConfig.SriovOperatorNamespace,
 				srIovPolicyResNameNetDevice,
-				5,
-				[]string{fmt.Sprintf("%s#0-4", srIovInterfacesUnderTest[0])},
+				6,
+				[]string{fmt.Sprintf("%s#0-5", srIovInterfacesUnderTest[0])},
 				NetConfig.WorkerLabelMap).Create()
 			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to create sriovnetwork policy %s",
 				srIovPolicyNetDevice))
@@ -1022,8 +1022,8 @@ func defineCreateSriovNetPolices(vfioPCIName, vfioPCIResName, sriovInterface,
 		vfioPCIName,
 		NetConfig.SriovOperatorNamespace,
 		vfioPCIResName,
-		5,
-		[]string{fmt.Sprintf("%s#0-4", sriovInterface)},
+		6,
+		[]string{fmt.Sprintf("%s#0-5", sriovInterface)},
 		NetConfig.WorkerLabelMap).WithVhostNet(true)
 
 	switch reqDriver {
