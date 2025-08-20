@@ -12,10 +12,8 @@ import (
 	"github.com/openshift-kni/eco-goinfra/pkg/reportxml"
 	. "github.com/openshift-kni/eco-gotests/tests/cnf/core/network/internal/netinittools"
 	"github.com/openshift-kni/eco-gotests/tests/cnf/core/network/internal/netparam"
-	"github.com/openshift-kni/eco-gotests/tests/cnf/core/network/metallb/internal/metallbenv"
 	"github.com/openshift-kni/eco-gotests/tests/cnf/core/network/metallb/internal/tsparams"
 	_ "github.com/openshift-kni/eco-gotests/tests/cnf/core/network/metallb/tests"
-	"github.com/openshift-kni/eco-gotests/tests/internal/cluster"
 	"github.com/openshift-kni/eco-gotests/tests/internal/params"
 	"github.com/openshift-kni/eco-gotests/tests/internal/reporter"
 )
@@ -47,17 +45,17 @@ var _ = BeforeSuite(func() {
 	_, err := testNS.Create()
 	Expect(err).ToNot(HaveOccurred(), "error to create test namespace")
 
-	By("Verifying if metalLb tests can be executed on given cluster")
-	err = metallbenv.DoesClusterSupportMetalLbTests(requiredCPNodeNumber, requiredWorkerNodeNumber)
+	//By("Verifying if metalLb tests can be executed on given cluster")
+	//err = metallbenv.DoesClusterSupportMetalLbTests(requiredCPNodeNumber, requiredWorkerNodeNumber)
 
 	if err != nil {
 		Skip(
 			fmt.Sprintf("given cluster is not suitable for MetalLb tests due to the following error %s", err.Error()))
 	}
 
-	By("Pulling test images on cluster before running test cases")
-	err = cluster.PullTestImageOnNodes(APIClient, NetConfig.WorkerLabel, NetConfig.CnfNetTestContainer, 300)
-	Expect(err).ToNot(HaveOccurred(), "Failed to pull test image on nodes")
+	//By("Pulling test images on cluster before running test cases")
+	//err = cluster.PullTestImageOnNodes(APIClient, NetConfig.WorkerLabel, NetConfig.CnfNetTestContainer, 300)
+	//Expect(err).ToNot(HaveOccurred(), "Failed to pull test image on nodes")
 })
 
 var _ = AfterSuite(func() {

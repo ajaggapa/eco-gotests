@@ -265,6 +265,46 @@ func DefineBGPConfigWithIPv4Network(localBGPASN, remoteBGPASN int,
 	return bgpConfig
 }
 
+
+// DefineBGPConfigWithIPv6Network defines BGP config file with network advertising only ipv6.
+func DefineBGPConfigWithIPv6Network(localBGPASN, remoteBGPASN int,
+	advertisedIPv6Routes, neighborsIPAddresses []string,
+	multiHop, bfd bool) string {
+	bgpConfig := tsparams.FRRBaseConfig +
+		fmt.Sprintf("router bgp %d\n", localBGPASN) +
+		tsparams.FRRDefaultBGPPreConfig
+
+	for _, ipAddress := range neighborsIPAddresses {
+		bgpConfig += fmt.Sprintf("  neighbor %s remote-as %d\n  neighbor %s password %s\n",
+			ipAddress, remoteBGPASN, ipAddress, tsparams.BGPPassword)
+
+		if bfd {
+			bgpConfig += fmt.Sprintf("  neighbor %s bfd\n", ipAddress)
+		}
+
+		if multiHop {
+			bgpConfig += fmt.Sprintf("  neighbor %s ebgp-multihop 2\n", ipAddress)
+		}
+	}
+
+	bgpConfig += "!\naddress-family ipv4 unicast\n"
+	for _, ipAddress := range neighborsIPAddresses {
+		bgpConfig += fmt.Sprintf("  neighbor %s activate\n", ipAddress)
+	}
+
+	bgpConfig += "exit-address-family\n!\naddress-family ipv6 unicast\n"
+	for _, ipAddress := range neighborsIPAddresses {
+		bgpConfig += fmt.Sprintf("  neighbor %s activate\n", ipAddress)
+	}
+
+	bgpConfig += fmt.Sprintf("  network %s\n", advertisedIPv6Routes[0])
+	bgpConfig += fmt.Sprintf("  network %s\n", advertisedIPv6Routes[1])
+
+	bgpConfig += "exit-address-family\n!\nline vty\n!\nend\n"
+
+	return bgpConfig
+}
+
 // BGPNeighborshipHasState verifies that BGP session on a pod has given state.
 func BGPNeighborshipHasState(frrPod *pod.Builder, neighborIPAddress string, state string) (bool, error) {
 	var result map[string]bgpDescription

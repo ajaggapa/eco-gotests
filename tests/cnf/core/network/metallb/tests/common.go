@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -26,6 +27,7 @@ import (
 	"github.com/openshift-kni/eco-gotests/tests/cnf/core/network/internal/ipaddr"
 	"github.com/openshift-kni/eco-gotests/tests/cnf/core/network/internal/netenv"
 	. "github.com/openshift-kni/eco-gotests/tests/cnf/core/network/internal/netinittools"
+	"github.com/openshift-kni/eco-gotests/tests/cnf/core/network/internal/netparam"
 	"github.com/openshift-kni/eco-gotests/tests/cnf/core/network/metallb/internal/frr"
 	"github.com/openshift-kni/eco-gotests/tests/cnf/core/network/metallb/internal/metallbenv"
 	"github.com/openshift-kni/eco-gotests/tests/cnf/core/network/metallb/internal/prometheus"
@@ -38,31 +40,111 @@ import (
 
 // test cases variables that are accessible across entire package.
 var (
-	ipv4metalLbIPList  []string
-	ipv4NodeAddrList   []string
-	ipv6metalLbIPList  []string
-	ipv6NodeAddrList   []string
-	cnfWorkerNodeList  []*nodes.Builder
-	workerNodeList     []*nodes.Builder
-	masterNodeList     []*nodes.Builder
-	workerLabelMap     map[string]string
-	metalLbTestsLabel  = map[string]string{"metallb": "metallbtests"}
-	frrK8WebHookServer = "frr-k8s-webhook-server"
+	clusterIPVersion  string
+	ipv4metalLbIPList []string
+	ipv4NodeAddrList  []string
+	ipv6metalLbIPList []string
+	ipv6NodeAddrList  []string
+	nodeAddrList      map[string][]string
+	metallbAddrList   map[string][]string
+	cnfWorkerNodeList []*nodes.Builder
+	workerNodeList    []*nodes.Builder
+	masterNodeList    []*nodes.Builder
+	workerLabelMap    map[string]string
 )
+
+var (
+	metalLbTestsLabel    = map[string]string{"metallb": "metallbtests"}
+	frrK8WebHookServer   = "frr-k8s-webhook-server"
+	ovnExternalAddresses = "k8s.ovn.org/node-primary-ifaddr"
+	frrPodSubnet         = map[string]string{
+		netparam.IPV4Family: netparam.IPSubnet24,
+		netparam.IPV6Family: netparam.IPSubnet64,
+	}
+)
+
+const (
+	ipv4 = netparam.IPV4Family
+	ipv6 = netparam.IPV6Family
+)
+
+func clusterSupportsIPv6() bool {
+	return clusterIPVersion == netparam.IPV6Family || clusterIPVersion == netparam.DualIPFamily
+}
+
+func clusterSupportsIPv4() bool {
+	return clusterIPVersion == netparam.IPV4Family || clusterIPVersion == netparam.DualIPFamily
+}
+
+func getClusterIPVersion() (string, error) {
+	nodesList, err := nodes.List(APIClient)
+	if err != nil {
+		return "", err
+	}
+
+	if len(nodesList) == 0 {
+		return "", fmt.Errorf("no nodes found")
+	}
+
+	var ipVersion string
+
+	for i, node := range nodesList {
+		ipVersion, _, err = getNodeExternalIP(node)
+		if err != nil {
+			return "", err
+		}
+		if i == 0 {
+			clusterIPVersion = ipVersion
+			continue
+		}
+		if ipVersion != clusterIPVersion {
+			return "", fmt.Errorf("mixed IP families detected: %s and %s", clusterIPVersion, ipVersion)
+		}
+	}
+
+	return clusterIPVersion, nil
+}
+
+func getNodeExternalIP(nodeBuilder *nodes.Builder) (string, nodes.ExternalNetworks, error) {
+	var extNetwork nodes.ExternalNetworks
+
+	err := json.Unmarshal([]byte(nodeBuilder.Object.Annotations[ovnExternalAddresses]), &extNetwork)
+	if err != nil {
+		return "", nodes.ExternalNetworks{}, err
+	}
+
+	if extNetwork.IPv4 != "" && extNetwork.IPv6 == "" {
+		return netparam.IPV4Family, extNetwork, nil
+	} else if extNetwork.IPv4 == "" && extNetwork.IPv6 != "" {
+		return netparam.IPV6Family, extNetwork, nil
+	} else if extNetwork.IPv4 != "" && extNetwork.IPv6 != "" {
+		return netparam.DualIPFamily, extNetwork, nil
+	} else {
+		return "", nodes.ExternalNetworks{}, fmt.Errorf("no IPv4 or IPv6 nodes found")
+	}
+}
 
 // Initializes and validates Vars:
 // ipv4metalLbIPList, ipv6metalLbIPList,
-// cnfWorkerNodeList, workerLabelMap, ipv4NodeAddrList,
+// ipv4NodeAddrList, ipv6NodeAddrList,
+// nodeAddrList, metallbAddrList,
+// cnfWorkerNodeList, workerLabelMap,
 // workerNodeList, masterNodeList.
 func validateEnvVarAndGetNodeList() {
 	var err error
+
+	By("Getting cluster IP version")
+	clusterIPVersion, err = getClusterIPVersion()
+	Expect(err).ToNot(HaveOccurred(), "Failed to get cluster IP version")
 
 	By("Fetching IPv4 and IPv6 IPs from ENV VAR to be used for External FRR Pod")
 
 	ipv4metalLbIPList, ipv6metalLbIPList, err = metallbenv.GetMetalLbIPByIPStack()
 	Expect(err).ToNot(HaveOccurred(), tsparams.MlbAddressListError)
 	Expect(len(ipv4metalLbIPList)).To(BeNumerically(">=", 2))
-	Expect(len(ipv6metalLbIPList)).To(BeNumerically(">=", 2))
+	if clusterSupportsIPv6() {
+		Expect(len(ipv6metalLbIPList)).To(BeNumerically(">=", 2))
+	}
 
 	By("Selecting Worker nodes for the test")
 
@@ -76,10 +158,21 @@ func validateEnvVarAndGetNodeList() {
 
 	ipv4NodeAddrList, err = nodes.ListExternalIPv4Networks(
 		APIClient, metav1.ListOptions{LabelSelector: labels.Set(workerLabelMap).String()})
-	Expect(err).ToNot(HaveOccurred(), "Failed to collect external nodes ip addresses")
+	Expect(err).ToNot(HaveOccurred(), "Failed to collect external nodes ipv4 addresses")
 
 	err = metallbenv.IsEnvVarMetalLbIPinNodeExtNetRange(ipv4NodeAddrList, ipv4metalLbIPList, nil)
-	Expect(err).ToNot(HaveOccurred(), "Failed to validate metalLb exported ip address")
+	Expect(err).ToNot(HaveOccurred(), "Failed to validate metalLb exported ipv4 address")
+
+	By("Validating whether the IPv6 addresses of ENV VAR are in the same subnet as Worker Nodes external IPv6 range")
+
+	if clusterSupportsIPv6() {
+		ipv6NodeAddrList, err = nodes.ListExternalIPv6Networks(
+			APIClient, metav1.ListOptions{LabelSelector: labels.Set(workerLabelMap).String()})
+		Expect(err).ToNot(HaveOccurred(), "Failed to collect external nodes ipv6 addresses")
+
+		err = metallbenv.IsEnvVarMetalLbIPinNodeExtNetRange(ipv6NodeAddrList, nil, ipv6metalLbIPList)
+		Expect(err).ToNot(HaveOccurred(), "Failed to validate metalLb exported ipv6 address")
+	}
 
 	By("Listing Master Nodes")
 
@@ -87,6 +180,13 @@ func validateEnvVarAndGetNodeList() {
 		metav1.ListOptions{LabelSelector: labels.Set(NetConfig.ControlPlaneLabelMap).String()})
 	Expect(err).ToNot(HaveOccurred(), "Fail to list master nodes")
 	Expect(len(masterNodeList)).To(BeNumerically(">=", 1))
+
+	// Initialize maps before assignment to avoid nil map panic
+	nodeAddrList = make(map[string][]string)
+	metallbAddrList = make(map[string][]string)
+
+	nodeAddrList[ipv4], nodeAddrList[ipv6] = ipv4NodeAddrList, ipv6NodeAddrList
+	metallbAddrList[ipv4], metallbAddrList[ipv6] = ipv4metalLbIPList, ipv6metalLbIPList
 }
 
 func setWorkerNodeListAndLabelForMlbTests(
